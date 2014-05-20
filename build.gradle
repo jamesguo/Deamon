@@ -1,0 +1,81 @@
+
+apply plugin: 'android'
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+    compile project(':TestDavilk')
+}
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "18.0.1"
+    defaultConfig {
+        versionCode 12
+        versionName "2.0"
+        minSdkVersion 16
+        targetSdkVersion 16
+    }
+    task copyNativeLibs(type: Copy) {
+        from(new File('libs')) { include '**/*.so' }
+        into new File(buildDir, 'native-libs')
+    }
+
+    tasks.withType(Compile) { 
+        compileTask -> compileTask.dependsOn copyNativeLibs 
+    }
+
+    clean.dependsOn 'cleanCopyNativeLibs'
+
+    tasks.withType(com.android.build.gradle.tasks.PackageApplication) { 
+        pkgTask ->pkgTask.jniDir new File(buildDir, 'native-libs')
+    }
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+        }
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+    signingConfigs {
+       release{
+            storeFile file("/Users/yrguo/Desktop/android.keystore")
+            storePassword "CtripAndroid"
+            keyAlias "ctrip"
+            keyPassword "CtripAndroid"
+        }
+        debug{
+            storeFile file("/Users/yrguo/Desktop/android.keystore")
+            storePassword "CtripAndroid"
+            keyAlias "ctrip"
+            keyPassword "CtripAndroid"
+        }
+    }
+
+    buildTypes{
+        task copyReleaseTask(type: Copy) {
+            from 'config'
+            into 'src/com/testnative'
+        }
+        task copyDebugTask(type: Copy) {
+            from 'config'
+            into 'src/com/testnative'
+            println 'copyDebugTask file'
+        }
+        release {
+            copyReleaseTask.execute()
+            signingConfig  signingConfigs.release
+            // runProguard true
+            // proguardFile 'proguard-android.txt'
+        } 
+        debug{
+            copyDebugTask.execute()
+            signingConfig  signingConfigs.debug
+            zipAlign true
+            // runProguard true
+            // proguardFile 'proguard-android.txt'
+        }
+   }
+}
